@@ -1,5 +1,8 @@
 {
   "setupWorkflows": {
     "pushAsPullRequest": true
+  },
+  "updateDeps": {
+    "branchMain": "test"
   }
 }
