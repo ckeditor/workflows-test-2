@@ -2,13 +2,7 @@ name: Setup and update common workflows
 
 on:
   schedule:
-    - cron: "0 2 * * *"
-  workflow_dispatch:
-    inputs:
-      config:
-        description: 'Config'
-        required: false
-        default: ''
+  - cron: "0 2 * * *"
 
 jobs:
   update:
@@ -20,17 +14,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_WORKFLOWS_TOKEN }}
-          
-      - name: Read config
-        run: |
-          CONFIG='{}'
-          if [[ ! -z '${{ github.event.inputs.config }}' ]]; then
-            CONFIG='${{ github.event.inputs.config }}'
-          elif [[ -f "./.github/workflows-config.json" ]]; then
-            CONFIG=$( jq -c .setupWorkflows './.github/workflows-config.json' )
-          fi
-          echo "CONFIG=$CONFIG" >> $GITHUB_ENV
-          echo "Workflow config: $CONFIG"
 
       - name: Checkout common workflows repository
         # https://github.com/marketplace/actions/checkout
@@ -55,18 +38,6 @@ jobs:
         run: |
           rm -rf ckeditor4-workflows-common
 
-      - name: Prepare PR branch
-        if: env.HAS_CHANGES == 1
-        run: |
-          BRANCH_NAME='${{ github.ref }}'
-          AS_PR=$(echo '${{ env.CONFIG }}' | jq -r ".pushAsPullRequest")
-          if [[ "$AS_PR" == "true" ]]; then
-            BRANCH_NAME="t/setup-workflows-update_$BRANCH_NAME"
-            echo "AS_PR=1" >> $GITHUB_ENV
-            git checkout -b t/$BRANCH_NAME
-          fi
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-
       - name: Add changes
         if: env.HAS_CHANGES == 1
         run: |
@@ -81,15 +52,4 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GH_WORKFLOWS_TOKEN }}
-          branch: ${{ env.BRANCH_NAME }}
-
-      - name: Create PR
-        if: env.AS_PR == 1
-        # https://github.com/marketplace/actions/github-pull-request-action
-        uses: repo-sync/pull-request@v2
-        with:
-          source_branch: "${{ env.BRANCH_NAME }}"
-          destination_branch: "${{ github.ref }}"
-          pr_title: "Update 'setup-workflows' workflow"
-          pr_body: "Update 'setup-workflows' workflow."
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
