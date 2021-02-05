@@ -2,7 +2,13 @@ name: Setup and update common workflows
 
 on:
   schedule:
-  - cron: "0 2 * * *"
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      config:
+        description: 'Config'
+        required: false
+        default: ''
 
 jobs:
   update:
@@ -11,10 +17,14 @@ jobs:
     steps:
       - name: Read config
         run: |
-          echo "SETTINGS={}" >> $GITHUB_ENV
-          if [[ -f "./.github/workflows-config.json" ]]; then
-            echo "SETTINGS=$( jq .setupWorkflows './.github/workflows-config.json' )" >> $GITHUB_ENV
+          CONFIG='{}'
+          if [[ ! -z '${{ github.event.inputs.config }}' ]]; then
+            CONFIG='${{ github.event.inputs.config }}'
+          elif [[ -f "./.github/workflows-config.json" ]]; then
+            CONFIG=$( jq .setupWorkflows './.github/workflows-config.json' )
           fi
+          echo "CONFIG=$CONFIG" >> $GITHUB_ENV
+          echo "Workflow config: $CONFIG"
 
       - name: Checkout default branch
         # https://github.com/marketplace/actions/checkout
@@ -48,13 +58,14 @@ jobs:
       - name: Prepare PR branch
         if: env.HAS_CHANGES == 1
         run: |
-          echo "BRANCH_NAME=${{ github.ref }}" >> $GITHUB_ENV
-          pushAsPullRequest=$(echo ${{ env.SETTINGS }} | jq ".pushAsPullRequest")
-          if [[ "$pushAsPullRequest" == true ]]; then
+          BRANCH_NAME='${{ github.ref }}'
+          AS_PR=$(echo '${{ env.CONFIG }}' | jq -r ".pushAsPullRequest")
+          if [[ "$AS_PR" == "true" ]]; then
+            BRANCH_NAME="t/setup-workflows-update_$BRANCH_NAME"
             echo "AS_PR=1" >> $GITHUB_ENV
-            echo "BRANCH_NAME=t/setup-workflows-update" >> $GITHUB_ENV
-            git checkout -b t/setup-workflows-update
+            git checkout -b t/$BRANCH_NAME
           fi
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Add changes
         if: env.HAS_CHANGES == 1
