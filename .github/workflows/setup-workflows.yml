@@ -15,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout default branch
+        # https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_WORKFLOWS_TOKEN }}
+          
       - name: Read config
         run: |
           CONFIG='{}'
@@ -25,12 +31,6 @@ jobs:
           fi
           echo "CONFIG=$CONFIG" >> $GITHUB_ENV
           echo "Workflow config: $CONFIG"
-
-      - name: Checkout default branch
-        # https://github.com/marketplace/actions/checkout
-        uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_WORKFLOWS_TOKEN }}
 
       - name: Checkout common workflows repository
         # https://github.com/marketplace/actions/checkout
